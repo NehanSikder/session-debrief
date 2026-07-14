@@ -56,14 +56,14 @@ body {
   font-size: 0.64rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase;
 }
 .mast .meta b { color: var(--correction); font-weight: 500; }
-#theme {
+#theme, #back {
   flex: none; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: 0.64rem; letter-spacing: 0.08em; color: var(--secondary);
   background: none; border: 1px solid var(--hairline); border-radius: 4px;
   padding: 0.15rem 0.55rem; cursor: pointer;
 }
-#theme:hover { color: var(--ink); border-color: var(--muted); }
-#theme:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+#theme:hover, #back:hover { color: var(--ink); border-color: var(--muted); }
+#theme:focus-visible, #back:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
 h1 {
   font-size: clamp(1.4rem, 3.6vw, 1.9rem); font-weight: 700; letter-spacing: -0.015em;
   line-height: 1.2; margin: 0 0 0.35rem; text-wrap: balance;

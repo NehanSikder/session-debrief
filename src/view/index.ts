@@ -9,6 +9,8 @@ import { initTheme } from "./theme";
 export interface RenderOptions {
   /** short source label (e.g. filename) shown in the masthead meta. */
   source?: string;
+  /** invoked by the masthead "New session" button to return to the upload screen. */
+  onReset?: () => void;
 }
 
 function legend(): HTMLElement {
@@ -40,7 +42,18 @@ export function renderDebrief(root: HTMLElement, debrief: Debrief, opts: RenderO
   const wrap = el("div", { class: "wrap" });
   root.append(wrap);
 
-  const mast = renderMasthead(debrief, opts.source);
+  // Wrap onReset so leaving the debrief also tears down the global key handler.
+  const reset = opts.onReset
+    ? (): void => {
+        if (activeKeyHandler) {
+          document.removeEventListener("keydown", activeKeyHandler);
+          activeKeyHandler = null;
+        }
+        opts.onReset?.();
+      }
+    : undefined;
+
+  const mast = renderMasthead(debrief, opts.source, reset);
   wrap.append(mast.element);
   initTheme(mast.themeButton);
 

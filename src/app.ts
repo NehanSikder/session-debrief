@@ -82,7 +82,7 @@ function showUpload(extra?: HTMLElement): void {
   });
 
   const upload = el("div", { class: "upload" }, [
-    el("h1", {}, ["Session Review"]),
+    el("h1", {}, ["Session Debrief"]),
     el("p", {}, [
       "Turn a Claude Code session into a fast debrief: the decisions, the corrections, and where each one lives in the transcript.",
     ]),
@@ -120,7 +120,7 @@ function loadText(text: string, source: string): void {
     return;
   }
 
-  renderDebrief(root, analyze(model), { source });
+  renderDebrief(root, analyze(model), { source, onReset: () => showUpload() });
 }
 
 async function loadFile(file: File): Promise<void> {

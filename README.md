@@ -1,4 +1,4 @@
-# Session Review
+# Session Debrief
 
 Turn a Claude Code session `.jsonl` file into a fast, human-readable debrief: the
 decisions, the corrections, and where each one lives in the transcript. Built to

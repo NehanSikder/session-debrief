@@ -1,4 +1,4 @@
-# Session Review — MVP1 Implementation Plan
+# Session Debrief — MVP1 Implementation Plan
 
 A local web app that turns a Claude Code session (`.jsonl`) into a fast human-readable
 debrief: what was decided, what went wrong, and where in the transcript each of those

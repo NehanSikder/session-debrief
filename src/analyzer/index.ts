@@ -5,7 +5,7 @@ import { extractFrictions } from "./friction";
 import { selectHighlights } from "./highlights";
 import { computeStats } from "./stats";
 import { buildTape } from "./tape";
-import { cleanUserText, truncate } from "./text";
+import { cleanUserText } from "./text";
 
 export type * from "./types";
 export { formatDuration } from "./stats";
@@ -22,7 +22,7 @@ function buildDeck(model: SessionModel): string {
   for (const turn of model.turns) {
     if (turn.isCommand || turn.interrupted) continue;
     const text = cleanUserText(turn.userText);
-    if (text) return truncate(text, 160);
+    if (text) return text;
   }
   return "No human prompt found in this session.";
 }
