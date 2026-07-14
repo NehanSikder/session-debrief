@@ -1,0 +1,561 @@
+<title>Session Review — MVP1 Prototype</title>
+<style>
+  :root {
+    --ground: #fcfcfb;
+    --ink: #111114;
+    --secondary: #5c5d63;
+    --muted: #97989d;
+    --hairline: #e6e6e3;
+    --accent: #2a78d6;
+    --correction: #d03b3b;
+    --link: #1c5cab;
+    --code-bg: #f0f0ee;
+    --wash: rgba(42, 120, 214, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #131417; --ink: #f0efec; --secondary: #b0b0ac; --muted: #7b7c82;
+      --hairline: #2a2b30; --accent: #3987e5; --correction: #e05252; --link: #6da7ec;
+      --code-bg: #222327; --wash: rgba(57, 135, 229, 0.10);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #131417; --ink: #f0efec; --secondary: #b0b0ac; --muted: #7b7c82;
+    --hairline: #2a2b30; --accent: #3987e5; --correction: #e05252; --link: #6da7ec;
+    --code-bg: #222327; --wash: rgba(57, 135, 229, 0.10);
+  }
+  :root[data-theme="light"] {
+    --ground: #fcfcfb; --ink: #111114; --secondary: #5c5d63; --muted: #97989d;
+    --hairline: #e6e6e3; --accent: #2a78d6; --correction: #d03b3b; --link: #1c5cab;
+    --code-bg: #f0f0ee; --wash: rgba(42, 120, 214, 0.06);
+  }
+
+  body {
+    background: var(--ground); color: var(--ink);
+    font-family: "Helvetica Neue", -apple-system, system-ui, "Segoe UI", sans-serif;
+    font-size: 1rem; line-height: 1.55;
+  }
+  .mono, code { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; }
+  .wrap { max-width: 62rem; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* ---- masthead ---- */
+  .mast {
+    display: flex; align-items: baseline; gap: 1rem;
+    border-bottom: 1px solid var(--ink); padding-bottom: 0.6rem; margin-bottom: 1.4rem;
+  }
+  .mast .brand {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+  }
+  .mast .meta {
+    margin-left: auto; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.64rem; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase;
+  }
+  .mast .meta b { color: var(--correction); font-weight: 500; }
+  #theme {
+    flex: none; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.64rem; letter-spacing: 0.08em; color: var(--secondary);
+    background: none; border: 1px solid var(--hairline); border-radius: 4px;
+    padding: 0.15rem 0.55rem; cursor: pointer;
+  }
+  #theme:hover { color: var(--ink); border-color: var(--muted); }
+  #theme:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+  h1 {
+    font-size: clamp(1.4rem, 3.6vw, 1.9rem); font-weight: 700; letter-spacing: -0.015em;
+    line-height: 1.2; margin: 0 0 0.35rem; text-wrap: balance;
+  }
+  .statline {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.7rem; letter-spacing: 0.06em; color: var(--secondary);
+    margin: 0 0 1rem; font-variant-numeric: tabular-nums;
+  }
+  .statline .d { color: var(--accent); }
+  .statline .f { color: var(--correction); }
+
+  /* ---- timeline (the master) ---- */
+  .tl-scroll { overflow-x: auto; }
+  .tl { width: 100%; min-width: 46rem; height: auto; display: block; }
+  .tl .grid-tick { stroke: var(--hairline); stroke-width: 1; }
+  .tl .axis { stroke: var(--hairline); stroke-width: 1.5; }
+  .tl .span { stroke: var(--muted); stroke-width: 1.5; }
+  .tl .turns line { stroke: var(--muted); stroke-width: 1; opacity: 0.55; }
+  .tl text {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 10px; fill: var(--muted);
+  }
+  .tl .ev { cursor: pointer; }
+  .tl .ev .stem { stroke: var(--hairline); stroke-width: 1.5; }
+  .tl .ev .mk { transform-box: fill-box; transform-origin: center; transition: transform 120ms ease; }
+  .tl .ev .t-time { font-size: 10px; fill: var(--muted); }
+  .tl .ev .t-title {
+    font-family: "Helvetica Neue", -apple-system, system-ui, sans-serif;
+    font-size: 13px; font-weight: 500; fill: var(--secondary);
+  }
+  .tl .ev:hover .t-title { fill: var(--ink); }
+  .tl .ev:hover .mk { transform: scale(1.25); }
+  .tl .ev:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 3px; }
+  .tl .ev.sel .stem { stroke: var(--accent); }
+  .tl .ev.sel.corr .stem { stroke: var(--correction); }
+  .tl .ev.sel .mk { transform: scale(1.35); }
+  .tl .ev.sel .t-title { fill: var(--ink); font-weight: 700; }
+  .tl .ev.sel .t-time { fill: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .tl .ev .mk { transition: none; } }
+  .tl-legend {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.62rem; letter-spacing: 0.08em; color: var(--muted);
+    margin: 0.2rem 0 0;
+  }
+  .tl-legend .d { color: var(--accent); }
+  .tl-legend .f { color: var(--correction); }
+
+  /* ---- detail card (the detail) ---- */
+  .card {
+    border: 1px solid var(--hairline); border-radius: 6px;
+    margin-top: 1.6rem; padding: 1.3rem 1.5rem 1.5rem;
+  }
+  .card[hidden] { display: none; }
+  .card-top { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.35rem; }
+  .card-meta {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .card-meta .type { color: var(--accent); font-weight: 500; }
+  .card.corr .card-meta .type { color: var(--correction); }
+  .card-nav { margin-left: auto; display: flex; gap: 0.25rem; flex: none; }
+  .card-nav button {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.72rem; color: var(--secondary);
+    background: none; border: 1px solid var(--hairline); border-radius: 4px;
+    padding: 0.18rem 0.6rem; cursor: pointer;
+  }
+  .card-nav button:hover { color: var(--ink); border-color: var(--muted); }
+  .card-nav button:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+  .card h2 {
+    font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25;
+    margin: 0 0 1rem; text-wrap: balance;
+  }
+  .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem 2.5rem; }
+  @media (max-width: 44rem) { .card-body { grid-template-columns: 1fr; } }
+  .fld-label {
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 0.35rem;
+  }
+  .opts { list-style: none; margin: 0; padding: 0; font-size: 0.95rem; }
+  .opts li { padding: 0.12rem 0; color: var(--secondary); }
+  .opts li.chosen { color: var(--ink); font-weight: 700; }
+  .opts li.chosen::before { content: "✓  "; color: var(--accent); font-weight: 400; }
+  .card.corr .opts li.chosen::before { color: var(--correction); }
+  .opts li:not(.chosen) { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--muted); }
+  .opts li:not(.chosen)::before { content: "·  "; }
+  .why { margin: 0; color: var(--secondary); font-size: 0.95rem; }
+  .why b { color: var(--ink); }
+  .why .crit { color: var(--correction); font-weight: 600; }
+  code { font-size: 0.82em; background: var(--code-bg); padding: 0.08em 0.35em; border-radius: 3px; }
+  .moment { grid-column: 1 / -1; border-top: 1px solid var(--hairline); padding-top: 1rem; }
+  .turn { margin: 0.5rem 0; font-size: 0.93rem; max-width: 60ch; }
+  .turn .who {
+    display: block; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 0.05rem;
+  }
+  .turn.user .who { color: var(--accent); }
+  .turn.agent .who { color: var(--muted); }
+  .turn p { margin: 0; color: var(--secondary); }
+  .turn.user p { color: var(--ink); }
+  @media (prefers-reduced-motion: no-preference) {
+    .card-swap { animation: fadein 160ms ease-out; }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  }
+
+  /* ---- the tape ---- */
+  .tape { margin-top: 2.4rem; }
+  .tape > summary {
+    list-style: none; cursor: pointer; padding: 0.8rem 0;
+    display: flex; align-items: baseline; gap: 0.9rem;
+    border-top: 1px solid var(--ink);
+  }
+  .tape > summary::-webkit-details-marker { display: none; }
+  .tape > summary:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+  .tape-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; }
+  .tape-sub { font-size: 0.8rem; color: var(--muted); }
+  .tape-dis {
+    margin-left: auto; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.66rem; color: var(--link);
+  }
+  .trow > summary {
+    list-style: none; cursor: pointer; display: flex; gap: 1.1rem; align-items: baseline;
+    padding: 0.55rem 0.4rem; font-size: 0.93rem; border-top: 1px solid var(--hairline);
+  }
+  .trow > summary::-webkit-details-marker { display: none; }
+  .trow > summary:hover { background: var(--wash); }
+  .trow > summary:focus-visible { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
+  .trow .t {
+    flex: none; width: 3rem; font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.68rem; color: var(--muted); padding-top: 0.2rem; font-variant-numeric: tabular-nums;
+  }
+  .trow .msg { font-weight: 600; }
+  .trow .one { display: block; color: var(--muted); font-size: 0.82rem; font-weight: 400; }
+  .trow .g { flex: none; margin-left: auto; font-size: 0.7rem; letter-spacing: 0.15em; }
+  .trow .g .d { color: var(--accent); }
+  .trow .g .f { color: var(--correction); }
+  .tdetail { padding: 0.2rem 0 0.9rem 4.5rem; }
+  .act { display: flex; gap: 0.7rem; align-items: baseline; padding: 0.14rem 0; font-size: 0.89rem; color: var(--secondary); }
+  .act .tag {
+    flex: none; width: 3.2rem; text-align: center;
+    font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); background: var(--code-bg); border-radius: 3px; padding: 0.1rem 0.3rem;
+  }
+  .act .tag.err { color: #fff; background: var(--correction); }
+  .act b { color: var(--ink); }
+
+  .colophon { margin-top: 2.6rem; font-size: 0.75rem; color: var(--muted); line-height: 1.7; }
+  .colophon a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="mast">
+      <span class="brand">Session Debrief</span>
+      <span class="meta">Jul 11 2026 · 15:04–16:28 · <b>prototype / fake data</b></span>
+      <button id="theme" aria-label="Toggle dark mode">☾ dark</button>
+    </div>
+    <h1>Built and shipped Unwind in one sitting.</h1>
+    <p class="statline">1h 24m &nbsp;·&nbsp; 12 turns &nbsp;·&nbsp; <span class="d">■ 5 decisions</span> &nbsp;·&nbsp; <span class="f">● 1 correction</span></p>
+  </header>
+
+  <!-- ============ TIMELINE — the master view ============ -->
+  <div class="tl-scroll">
+    <svg class="tl" viewBox="0 0 940 320" role="listbox" aria-label="Session timeline — six highlights, select one to see detail below">
+      <!-- 15-minute grid -->
+      <g class="turns" aria-hidden="true">
+        <line class="grid-tick" x1="40" y1="60" x2="40" y2="196"/>
+        <line class="grid-tick" x1="185" y1="60" x2="185" y2="196"/>
+        <line class="grid-tick" x1="330" y1="60" x2="330" y2="196"/>
+        <line class="grid-tick" x1="475" y1="60" x2="475" y2="196"/>
+        <line class="grid-tick" x1="620" y1="60" x2="620" y2="196"/>
+        <line class="grid-tick" x1="765" y1="60" x2="765" y2="196"/>
+        <line class="grid-tick" x1="910" y1="60" x2="910" y2="196"/>
+      </g>
+      <text x="40" y="212" text-anchor="middle">15:00</text>
+      <text x="185" y="212" text-anchor="middle">15:15</text>
+      <text x="330" y="212" text-anchor="middle">15:30</text>
+      <text x="475" y="212" text-anchor="middle">15:45</text>
+      <text x="620" y="212" text-anchor="middle">16:00</text>
+      <text x="765" y="212" text-anchor="middle">16:15</text>
+      <text x="910" y="212" text-anchor="middle">16:30</text>
+
+      <line class="axis" x1="40" y1="180" x2="910" y2="180"/>
+      <line class="span" x1="79" y1="180" x2="891" y2="180"/>
+
+      <!-- every turn: faint tick -->
+      <g class="turns" aria-hidden="true">
+        <line x1="79"  y1="175" x2="79"  y2="185"/><line x1="166" y1="175" x2="166" y2="185"/>
+        <line x1="224" y1="175" x2="224" y2="185"/><line x1="262" y1="175" x2="262" y2="185"/>
+        <line x1="291" y1="175" x2="291" y2="185"/><line x1="340" y1="175" x2="340" y2="185"/>
+        <line x1="494" y1="175" x2="494" y2="185"/><line x1="601" y1="175" x2="601" y2="185"/>
+        <line x1="668" y1="175" x2="668" y2="185"/><line x1="726" y1="175" x2="726" y2="185"/>
+        <line x1="823" y1="175" x2="823" y2="185"/><line x1="861" y1="175" x2="861" y2="185"/>
+      </g>
+
+      <!-- highlights: label above or below the axis, stem to the mark -->
+      <g class="ev" data-i="0" role="option" tabindex="0" aria-selected="true" aria-label="15:04 decision: single index.html, no framework">
+        <line class="stem" x1="79" y1="92" x2="79" y2="174"/>
+        <text class="t-time" x="79" y="70">15:04</text>
+        <text class="t-title" x="79" y="86">Single-file build</text>
+        <rect class="mk" x="74" y="175" width="10" height="10" rx="1.5" fill="var(--accent)"/>
+        <rect x="49" y="56" width="130" height="140" fill="transparent"/>
+      </g>
+      <g class="ev" data-i="1" role="option" tabindex="0" aria-selected="false" aria-label="15:13 decision: movement made optional">
+        <line class="stem" x1="166" y1="186" x2="166" y2="240"/>
+        <text class="t-time" x="166" y="258">15:13</text>
+        <text class="t-title" x="166" y="274">Movement optional</text>
+        <rect class="mk" x="161" y="175" width="10" height="10" rx="1.5" fill="var(--accent)"/>
+        <rect x="136" y="170" width="120" height="112" fill="transparent"/>
+      </g>
+      <g class="ev" data-i="2" role="option" tabindex="0" aria-selected="false" aria-label="15:19 to 15:26 decision: named it Unwind">
+        <line class="stem" x1="253" y1="134" x2="253" y2="174"/>
+        <text class="t-time" x="253" y="112">15:19–26</text>
+        <text class="t-title" x="253" y="128">Named “Unwind”</text>
+        <rect class="mk" x="248" y="175" width="10" height="10" rx="1.5" fill="var(--accent)"/>
+        <rect x="228" y="98" width="120" height="98" fill="transparent"/>
+      </g>
+      <g class="ev" data-i="3" role="option" tabindex="0" aria-selected="false" aria-label="15:47 decision: published to GitHub Pages">
+        <line class="stem" x1="494" y1="186" x2="494" y2="240"/>
+        <text class="t-time" x="494" y="258">15:47</text>
+        <text class="t-title" x="494" y="274">GitHub Pages</text>
+        <rect class="mk" x="489" y="175" width="10" height="10" rx="1.5" fill="var(--accent)"/>
+        <rect x="469" y="170" width="100" height="112" fill="transparent"/>
+      </g>
+      <g class="ev" data-i="4" role="option" tabindex="0" aria-selected="false" aria-label="15:58 decision: lock-on with CSS pulse and vibration">
+        <line class="stem" x1="601" y1="112" x2="601" y2="174"/>
+        <text class="t-time" x="601" y="90">15:58</text>
+        <text class="t-title" x="601" y="106">Lock-on feel</text>
+        <rect class="mk" x="596" y="175" width="10" height="10" rx="1.5" fill="var(--accent)"/>
+        <rect x="576" y="76" width="100" height="120" fill="transparent"/>
+      </g>
+      <g class="ev corr" data-i="5" role="option" tabindex="0" aria-selected="false" aria-label="16:05 correction: pushed before local testing">
+        <line class="stem" x1="668" y1="186" x2="668" y2="240"/>
+        <text class="t-time" x="668" y="258">16:05</text>
+        <text class="t-title" x="668" y="274">Premature push</text>
+        <circle class="mk" cx="673" cy="180" r="5.5" fill="var(--correction)"/>
+        <rect x="648" y="170" width="110" height="112" fill="transparent"/>
+      </g>
+    </svg>
+  </div>
+  <p class="tl-legend"><span class="d">■</span> decision &nbsp; <span class="f">●</span> correction &nbsp; | faint tick = one turn — select a highlight, or use ← →</p>
+
+  <!-- ============ DETAIL CARD — the detail view ============ -->
+  <section class="card" id="card" aria-live="polite" hidden>
+    <div class="card-top">
+      <span class="card-meta" id="card-meta"></span>
+      <span class="card-nav">
+        <button id="prev" aria-label="Previous highlight">←</button>
+        <button id="next" aria-label="Next highlight">→</button>
+        <button id="close" aria-label="Close detail, return to timeline">✕</button>
+      </span>
+    </div>
+    <div id="card-content"></div>
+  </section>
+
+  <!-- detail content, one template per highlight -->
+  <template id="tpl-0">
+    <h2>Single index.html, no framework.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">Options</p>
+        <ul class="opts"><li class="chosen">One self-contained file</li><li>Vite + React scaffold</li></ul>
+      </div>
+      <div><p class="fld-label">Why</p>
+        <p class="why">Chosen for <b>zero-build sharing</b> — the whole app stays a link. Every later change in the session rode on this: no bundler, no deploy pipeline.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 15:04</p>
+        <div class="turn user"><span class="who">user</span><p>Build me a calming break app — start with a breathing exercise</p></div>
+        <div class="turn agent"><span class="who">agent</span><p>I'll keep this a single self-contained index.html so it's shareable with zero build. Plan: breathing circle with 4-7-8 timing, then a completion screen…</p></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-1">
+    <h2>Movement became optional — breathing is the core loop.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">Options</p>
+        <ul class="opts"><li>Movement as a required step</li><li class="chosen">Optional card after the completion screen</li></ul>
+      </div>
+      <div><p class="fld-label">Why</p>
+        <p class="why">A <b>user directive</b>, not an agent proposal — it reshaped the flow: breathing exercise → completion screen → optional activities.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 15:13</p>
+        <div class="turn user"><span class="who">user</span><p>This is the screen you should get after the breathing exercise. And then the movement should be an optional activity</p></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-2">
+    <h2>Named it Unwind.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">Options</p>
+        <ul class="opts"><li>Cycle Breaker</li><li class="chosen">Unwind</li><li>Stillpoint</li><li>Ten Deep</li></ul>
+      </div>
+      <div><p class="fld-label">Why</p>
+        <p class="why">You liked <b>Cycle Breaker's theme</b> (interrupting the stress loop) but chose Unwind's gentleness — the "break the cycle" idea survives in the completion copy.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 15:19</p>
+        <div class="turn user"><span class="who">user</span><p>This is good so far. Lets figure out the name. Give me a couple of options</p></div>
+        <div class="turn agent"><span class="who">agent</span><p>Four directions: Cycle Breaker (interrupting the stress loop), Unwind (gentle release), Stillpoint (moment of calm), Ten Deep (ten deep breaths).</p></div>
+        <div class="turn user"><span class="who">user</span><p>Lets go with unwind</p></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-3">
+    <h2>Published to GitHub Pages.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">Options</p>
+        <ul class="opts"><li class="chosen">GitHub Pages, public repo</li><li>Vercel</li></ul>
+      </div>
+      <div><p class="fld-label">Why</p>
+        <p class="why">Free, fits the single-file architecture. One hiccup: <span class="crit">✕ gh auth token expired</span> during <code>gh repo create</code> — refreshed and retried, then live.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 15:47</p>
+        <div class="turn user"><span class="who">user</span><p>this is good now. Go ahead and push this to github and publish this app and share the link to me</p></div>
+        <div class="turn agent"><span class="who">agent</span><p>Published: https://…github.io/unwind — repo creation needed one auth refresh, noted in the log.</p></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-4">
+    <h2>Lock-on feel: CSS pulse and vibration, not canvas particles.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">Options</p>
+        <ul class="opts"><li class="chosen">CSS scale-pulse + <code>navigator.vibrate(50)</code></li><li>Canvas particle burst</li></ul>
+      </div>
+      <div><p class="fld-label">Why</p>
+        <p class="why">Agent recommended, you accepted — a <b>half-second feel with no new dependencies</b>; the flashier option was off-tone for a calming app.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 15:58</p>
+        <div class="turn user"><span class="who">user</span><p>…add a quick lock on effect for half second when the user successfully tracks the ball. Maybe add in a slight vibration too. Thoughts on implemeting</p></div>
+        <div class="turn agent"><span class="who">agent</span><p>Two options: a CSS scale-pulse with navigator.vibrate(50) — cheap, matches the aesthetic — or a canvas particle burst, flashier but heavier. Recommending the CSS pulse.</p></div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tpl-5">
+    <h2>The agent pushed to GitHub before local testing.</h2>
+    <div class="card-body">
+      <div><p class="fld-label">What happened</p>
+        <p class="why">You interrupted mid-push and reversed the order; the second publish waited for a local verification round.</p>
+      </div>
+      <div><p class="fld-label">Takeaway</p>
+        <p class="why">Inferred standing rule <b>(low confidence)</b>: verify locally before any push.</p>
+      </div>
+      <div class="moment"><p class="fld-label">The moment · 16:05</p>
+        <div class="turn user"><span class="who">user</span><p>Why did you push to github? I wanted to test it locally first</p></div>
+        <div class="turn agent"><span class="who">agent</span><p>You're right — I pushed without asking. Stopping here; I'll serve it locally so you can verify the lock-on feel first.</p></div>
+      </div>
+    </div>
+  </template>
+
+  <!-- ============ THE TAPE ============ -->
+  <details class="tape">
+    <summary>
+      <span class="tape-title">The tape</span>
+      <span class="tape-sub">the full session, turn by turn · 12 turns</span>
+      <span class="tape-dis">unroll →</span>
+    </summary>
+    <div class="turns">
+
+      <details class="trow"><summary><span class="t">15:04</span><span class="msg">Build me a calming break app — start with a breathing exercise<span class="one">Plan approved: single file, no framework · breathing circle scaffolded (412 lines)</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail">
+          <div class="act"><span class="tag">plan</span><span>Single-file SPA vs Vite+React — <b>user approved single file</b></span></div>
+          <div class="act"><span class="tag">write</span><span><code>index.html</code> created · 412 lines</span></div>
+        </div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:13</span><span class="msg">Completion screen after breathing; movement should be optional<span class="one">Flow reordered · optional-activity card added</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">edit</span><span><code>index.html</code> ×2 · flow reorder</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:19</span><span class="msg">Lets figure out the name — give me options<span class="one">4 options presented: Cycle Breaker, Unwind, Stillpoint, Ten Deep</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">ask</span><span>Name options with theme rationale for each</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:23</span><span class="msg">I liked the concept of cycle breaker from theme perspective<span class="one">Naming discussion · no file changes</span></span><span class="g"></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">talk</span><span>Theme direction narrowed</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:26</span><span class="msg">Lets go with unwind<span class="one">Renamed throughout: title, header, completion copy</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">edit</span><span><code>index.html</code> · renamed to <b>Unwind</b></span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:31</span><span class="msg">Take out — from all the text; breathing labels look unprofessional<span class="one">Copy pass · index.html re-edited ×5 (churn)</span></span><span class="g"><span class="f">●</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">edit</span><span><code>index.html</code> ×5 · em-dashes removed, breathing labels restyled</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:47</span><span class="msg">Push to github, publish, share the link<span class="one">Repo created after auth retry · Pages live</span></span><span class="g"><span class="d">■</span><span class="f">✕</span></span></summary>
+        <div class="tdetail">
+          <div class="act"><span class="tag">cmd</span><span><code>git init &amp;&amp; git add -A &amp;&amp; git commit</code></span></div>
+          <div class="act"><span class="tag err">err</span><span><code>gh repo create unwind --public</code> · <b>auth token expired</b></span></div>
+          <div class="act"><span class="tag">cmd</span><span><code>gh auth refresh</code> · retry OK · <code>git push -u origin main</code> · Pages enabled</span></div>
+        </div>
+      </details>
+
+      <details class="trow"><summary><span class="t">15:58</span><span class="msg">Add a lock-on effect + slight vibration — thoughts?<span class="one">CSS pulse + vibrate chosen over canvas particles · implemented</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail">
+          <div class="act"><span class="tag">talk</span><span>Compared CSS pulse vs canvas burst — recommended CSS</span></div>
+          <div class="act"><span class="tag">edit</span><span><code>index.html</code> · pulse + haptic call</span></div>
+        </div>
+      </details>
+
+      <details class="trow"><summary><span class="t">16:05</span><span class="msg">[Interrupted] Why did you push to github? I wanted to test locally first<span class="one">Push halted · countermand acknowledged</span></span><span class="g"><span class="f">●</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">int</span><span><b>[Request interrupted by user for tool use]</b> during <code>git push</code></span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">16:11</span><span class="msg">(local verification loop)<span class="one">Served on :8000 · lock-on feel verified over 4 rounds</span></span><span class="g"></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">cmd</span><span><code>python3 -m http.server 8000</code> · background</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">16:21</span><span class="msg">Local testing looks good — push to github now<span class="one">Commit "feat: lock-on pulse + haptic feedback" · deployed</span></span><span class="g"><span class="d">■</span></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">cmd</span><span><code>git commit &amp;&amp; git push</code> · Pages redeployed</span></div></div>
+      </details>
+
+      <details class="trow"><summary><span class="t">16:25</span><span class="msg">(wrap-up)<span class="one">README updated with live link</span></span><span class="g"></span></summary>
+        <div class="tdetail"><div class="act"><span class="tag">edit</span><span><code>README.md</code> · live link, feature list</span></div></div>
+      </details>
+
+    </div>
+  </details>
+
+  <p class="colophon">Design notes — timeline-master + detail-card is overview&#8202;+&#8202;detail (<a href="https://dl.acm.org/doi/10.1145/1456650.1456652">Cockburn et&nbsp;al. 2009</a>) · typed highlights linking to source after <a href="https://dl.acm.org/doi/10.1145/3274465">Tilda (CSCW 2018)</a> · detail deferred per <a href="https://www.nngroup.com/articles/progressive-disclosure/">progressive disclosure</a> · low visual complexity per <a href="https://research.google/pubs/the-role-of-visual-complexity-and-prototypicality-regarding-first-impression-of-websites-working-towards-understanding-aesthetic-judgments/">Tuch et&nbsp;al. 2012</a> · mark colors CVD-validated, shape + label as secondary encoding.</p>
+
+</div>
+
+<script>
+  const meta = [
+    { n: "1 / 6", type: "decision",   time: "15:04" },
+    { n: "2 / 6", type: "decision",   time: "15:13" },
+    { n: "3 / 6", type: "decision",   time: "15:19–15:26" },
+    { n: "4 / 6", type: "decision",   time: "15:47" },
+    { n: "5 / 6", type: "decision",   time: "15:58" },
+    { n: "6 / 6", type: "correction", time: "16:05" },
+  ];
+  const evs = [...document.querySelectorAll(".tl .ev")];
+  const card = document.getElementById("card");
+  const cardMeta = document.getElementById("card-meta");
+  const cardContent = document.getElementById("card-content");
+  let cur = 0;
+
+  function select(i, scrollToCard) {
+    cur = (i + evs.length) % evs.length;
+    evs.forEach((g, k) => {
+      g.classList.toggle("sel", k === cur);
+      g.setAttribute("aria-selected", String(k === cur));
+    });
+    const m = meta[cur];
+    card.classList.toggle("corr", m.type === "correction");
+    cardMeta.innerHTML = `${m.n} &nbsp;·&nbsp; <span class="type">${m.type}</span> &nbsp;·&nbsp; ${m.time}`;
+    cardContent.innerHTML = "";
+    const frag = document.getElementById("tpl-" + cur).content.cloneNode(true);
+    const swap = document.createElement("div");
+    swap.className = "card-swap";
+    swap.appendChild(frag);
+    cardContent.appendChild(swap);
+    card.hidden = false;
+    if (scrollToCard) card.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
+  }
+
+  function closeCard() {
+    card.hidden = true;
+    evs.forEach(g => { g.classList.remove("sel"); g.setAttribute("aria-selected", "false"); });
+    evs[cur].focus();
+  }
+
+  evs.forEach(g => {
+    g.addEventListener("click", () => select(+g.dataset.i, true));
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(+g.dataset.i, true); }
+    });
+  });
+  document.getElementById("prev").addEventListener("click", () => select(cur - 1));
+  document.getElementById("next").addEventListener("click", () => select(cur + 1));
+  document.getElementById("close").addEventListener("click", closeCard);
+  document.addEventListener("keydown", e => {
+    if (e.target.closest("input, textarea")) return;
+    if (e.key === "Escape" && !card.hidden) { closeCard(); return; }
+    if (e.key === "ArrowLeft") select(card.hidden ? cur : cur - 1);
+    if (e.key === "ArrowRight") select(card.hidden ? cur : cur + 1);
+  });
+
+  /* ---- theme toggle ---- */
+  const themeBtn = document.getElementById("theme");
+  function applyTheme(t) {
+    document.documentElement.dataset.theme = t;
+    themeBtn.textContent = t === "dark" ? "☀ light" : "☾ dark";
+    try { localStorage.setItem("sr-theme", t); } catch {}
+  }
+  let saved = null;
+  try { saved = localStorage.getItem("sr-theme"); } catch {}
+  applyTheme(saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  themeBtn.addEventListener("click", () =>
+    applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+</script>
