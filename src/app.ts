@@ -132,35 +132,6 @@ async function loadFile(file: File): Promise<void> {
   }
 }
 
-/**
- * When opened by the review skill, the session is handed off in the URL fragment
- * as `#s=<gzip+base64url>` (with an optional `n=<label>`). Fragments never reach
- * a server, so the data stays between the skill and your browser. Decode it and
- * render straight to the debrief.
- */
-async function loadFromHash(s: string, label: string): Promise<void> {
-  try {
-    const text = await gunzip(base64urlToBytes(s));
-    loadText(text, label);
-  } catch {
-    showUpload(errorNote("Could not read the session from this link."));
-  }
-}
-
-function base64urlToBytes(s: string): Uint8Array<ArrayBuffer> {
-  let b64 = s.replace(/-/g, "+").replace(/_/g, "/");
-  b64 += "=".repeat((4 - (b64.length % 4)) % 4);
-  const bin = atob(b64);
-  const bytes = new Uint8Array(new ArrayBuffer(bin.length));
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
-}
-
-async function gunzip(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
-  return new Response(stream).text();
-}
-
 // Window-level drag/drop works on any screen (upload or a rendered debrief).
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => {
@@ -169,10 +140,4 @@ window.addEventListener("drop", (e) => {
   if (file) void loadFile(file);
 });
 
-const hash = new URLSearchParams(location.hash.slice(1));
-const handoff = hash.get("s");
-if (handoff) {
-  void loadFromHash(handoff, hash.get("n") || "shared session");
-} else {
-  showUpload();
-}
+showUpload();
